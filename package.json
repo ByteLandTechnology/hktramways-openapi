@@ -1,0 +1,60 @@
+{
+  "name": "hktramways-openapi",
+  "version": "1.0.0",
+  "description": "Unofficial, independent OpenAPI 3.0 specification, bilingual interactive documentation, and TypeScript SDK for the Hong Kong Tramways mobile backend API",
+  "license": "MIT",
+  "author": "ByteLand Technology Limited",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ByteLandTechnology/hktramways-openapi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ByteLandTechnology/hktramways-openapi/issues"
+  },
+  "keywords": [
+    "hong-kong",
+    "tramways",
+    "ding-ding",
+    "openapi",
+    "transit",
+    "eta",
+    "realtime",
+    "api"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./json": "./dist/openapi.json",
+    "./yaml": "./dist/openapi.yaml",
+    "./en/json": "./dist/openapi.json",
+    "./en/yaml": "./dist/openapi.yaml",
+    "./zh-HK/json": "./dist/openapi.zh-HK.json",
+    "./zh-HK/yaml": "./dist/openapi.zh-HK.yaml"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "scalar document serve openapi.yaml --watch",
+    "dev:zh": "scalar document serve openapi.zh-HK.yaml --watch",
+    "lint": "scalar document validate openapi.yaml",
+    "lint:zh": "scalar document validate openapi.zh-HK.yaml",
+    "bundle": "scalar document bundle openapi.yaml -o dist/openapi.json",
+    "bundle:zh": "scalar document bundle openapi.zh-HK.yaml -o dist/openapi.zh-HK.json",
+    "build": "orval && tsc"
+  },
+  "devDependencies": {
+    "@scalar/cli": "^2.10.0",
+    "@types/node": "^22.20.5",
+    "orval": "^8.40.0",
+    "typescript": "^5.9.3"
+  }
+}

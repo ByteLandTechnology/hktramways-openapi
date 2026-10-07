@@ -1,0 +1,981 @@
+openapi: 3.0.3
+info:
+  title: HK Tramways API (Unofficial)
+  version: 1.0.0
+  description: >
+    本文件是香港電車流動端後端 API 的非官方 OpenAPI 3.0 規範。
+
+
+    作者通過觀察公開網絡協議流量編寫了本規範。
+
+    本規範僅用於技術互操作性研究與教育探索。
+
+    所有架構定義均與生產環境的實時服務器響應相符。
+
+
+    ## 免責聲明與使用條款
+
+
+    - **無隸屬關係**：本項目為獨立的開源規範。
+      它與香港電車有限公司無任何關聯。
+    - **商標聲明**：「香港電車」、「Ding Ding」及相關品牌名稱均為香港電車有限公司的商標。
+      本規範僅在指示性合理使用下使用這些標識進行識別。
+    - **請求頻率與合理使用**：官方服務器不發布服務水準協議。
+      官方流動應用程式每 15 秒請求一次數據。
+      切勿將本規範用於商業運營、自動化抓取或拒絕服務測試。
+    - **無擔保**：作者按「原樣」提供本規範，不提供任何形式的擔保。
+      作者對任何誤用或服務中斷概不承擔責任。
+
+    ## 一般資訊
+
+
+    - **基礎 URL**：`https://api.hktramways.com/api/v1`
+
+    - **身分驗證**：公共讀取端點不需要身分驗證金鑰或權杖。
+      `Authorization: Bearer` 標頭僅適用於帳戶端點。
+    - **請求標頭**：發送 `Accept: application/json`。發送帶有 `en`、`zh-hk` 或 `zh-cn` 的
+    `Accept-Language`。
+      車站響應包含英文、繁體中文和簡體中文名稱。
+    - **響應格式**：響應使用標準格式 `{ "success": boolean, "data": ... }`。
+      來自 Laravel 框架的路由錯誤返回 `{ "message": string }`。
+    - **更新頻率**：官方應用程式每 15 秒查詢一次 `/tram-eta`。
+      服務器提供實時位置（`ACTUAL`）和時刻表估算（`SCHEDULED`）。
+    - **速率限制**：服務器不發布速率限制數值。
+      以 15 秒或更長時間的間隔發送請求。切勿將此 API 用於商業運營。
+
+    ## 車站代碼（`loc_code`）
+
+
+    - 總站：`SKT`（筲箕灣）、`KTT`（堅尼地城）、`HVT`（跑馬地）。
+
+    - 沿途停靠站：`02W` 和 `76W`（西行）或 `01E` 和 `92E`（東行）。
+
+    - 您可以通過 `GET /home` 獲取完整的車站列表。
+  contact:
+    name: ByteLand Technology Limited
+    url: https://github.com/ByteLandTechnology/hktramways-openapi
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  x-unofficial: true
+  x-source:
+    protocol-observation: public-network-traffic
+    target-client-version: 1.0.1
+    recorded-at: 2026-10-05
+servers:
+  - url: https://api.hktramways.com/api/v1
+    description: Production environment (official mobile backend)
+tags:
+  - name: Home
+    description: 車站、總站、地區與橫幅的靜態數據。
+  - name: ETA
+    description: 電車的預計到達時間。
+  - name: News
+    description: 新聞文章與新聞稿。
+  - name: Notices
+    description: 服務通告與乘客警示。
+  - name: Tram Tour
+    description: TramOramic 觀光活動與時間表。
+  - name: App Config
+    description: 應用程式配置與路線顏色。
+paths:
+  /home:
+    get:
+      operationId: getHomeData
+      summary: 獲取全部靜態車站數據與配置
+      description: |
+        此端點返回按方向分組的全部車站。
+        它還返回總站、地區、新聞標籤與橫幅項目。
+        官方應用程式在啟動時存儲此數據。
+        應用程式通過使用車站多邊形與 GPS 坐標在本地計算最近的車站。
+        該響應包含 66 個西行車站與 64 個東行車站。
+      tags:
+        - Home
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/HomeData"
+  /tram-eta/{stationCode}/{direction}:
+    get:
+      operationId: getTramETA
+      summary: 獲取車站的實時到達預估
+      description: |
+        此端點返回指定車站與方向的即將到達電車。
+        官方應用程式每 15 秒查詢一次此端點。
+
+        - `ACTUAL`：服務器使用 GPS 追蹤電車（`tram_no`）。
+          `estimated_arrival_time` 欄位以 `YYYY-MM-DD HH:MM:SS` 格式提供本地時間（UTC+8）。
+          `arriving_in` 欄位包含分鐘數或字串 `"ARRIVED"`。
+        - `SCHEDULED`：服務器根據時間表計算到達時間。
+          `estimated_dep_time` 欄位提供發車時間。
+          `arriving_in` 欄位包含整數分鐘數。
+        - 每個項目包含帶有該路線全部停靠站的 `route_stations`。
+      tags:
+        - ETA
+      parameters:
+        - $ref: "#/components/parameters/StationCode"
+        - $ref: "#/components/parameters/Direction"
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/EtaData"
+        "400":
+          description: 方向參數無效。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: Direction must be either "westbound" or "eastbound"
+        "404":
+          description: 未找到車站代碼。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                unknownStation:
+                  value:
+                    success: false
+                    message: Station code '92E' not found
+                wrongDirection:
+                  value:
+                    success: false
+                    message: Station code '10W' not found in eastbound routes
+  /news:
+    get:
+      operationId: getAllNews
+      summary: 獲取分頁新聞文章
+      description: |
+        此端點返回按發布日期降序排序的新聞文章。
+        每頁有五個項目。
+        使用 page 查詢參數請求其他頁面。
+      tags:
+        - News
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination. Default is 1.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 2
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/NewsPage"
+  /news/{id}:
+    get:
+      operationId: getNewsById
+      summary: 獲取新聞文章詳情
+      description: 此端點按 ID 返回單篇新聞文章的完整詳情。
+      tags:
+        - News
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the news article.
+          schema:
+            type: integer
+          example: 34
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/NewsItem"
+        "404":
+          description: 未找到新聞文章。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /notices:
+    get:
+      operationId: getAllNotices
+      summary: 獲取全部有效服務通告
+      description: 此端點返回全部有效的服務公告與關聯的車站 ID。
+      tags:
+        - Notices
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoticeListResponse"
+  /notices/general:
+    get:
+      operationId: getGeneralNotices
+      summary: 獲取一般服務通告
+      description: 此端點返回不與特定車站關聯的服務通告。
+      tags:
+        - Notices
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoticeListResponse"
+  /notices/{stationCode}:
+    get:
+      operationId: getStationNotices
+      summary: 獲取車站的服務通告
+      description: |
+        此端點返回指定車站代碼的服務通告。
+        如果沒有通告適用於該車站，服務器返回一個空列表。
+      tags:
+        - Notices
+      parameters:
+        - $ref: "#/components/parameters/StationCode"
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoticeListResponse"
+  /tram-tour:
+    get:
+      operationId: getTramTourData
+      summary: 獲取觀光行程數據
+      description: 此端點返回行程亮點、行程活動與往期活動存檔。
+      tags:
+        - Tram Tour
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/TourData"
+  /tour-events/{id}:
+    get:
+      operationId: getTourEventById
+      summary: 獲取行程活動詳情
+      description: 此端點按 ID 返回單個行程活動的完整詳情。
+      tags:
+        - Tram Tour
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier of the tour event.
+          schema:
+            type: integer
+          example: 3
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/TourEvent"
+        "404":
+          description: 未找到路由。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LaravelRouteError"
+              example:
+                message: The route api/v1/tram-tour/3 could not be found.
+  /app-config:
+    get:
+      operationId: getAppConfig
+      summary: 獲取遠程應用程式配置
+      description: 此端點返回 ROUTE_COLORS 映射。它將目的地代碼映射為十六進制顏色值。
+      tags:
+        - App Config
+      responses:
+        "200":
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - data
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: "#/components/schemas/AppConfig"
+components:
+  parameters:
+    StationCode:
+      name: stationCode
+      in: path
+      required: true
+      description: 車站識別碼（來自 /home 的 loc_code），例如 SKT 或 76W。
+      schema:
+        type: string
+        pattern: ^[A-Z0-9]{2,4}$
+      example: 76W
+    Direction:
+      name: direction
+      in: path
+      required: true
+      description: 小寫的行車方向（westbound 或 eastbound）。
+      schema:
+        type: string
+        enum:
+          - westbound
+          - eastbound
+      example: westbound
+  schemas:
+    HomeData:
+      type: object
+      required:
+        - stations
+        - destinations
+        - districts
+        - news_tags
+        - highlights
+      properties:
+        stations:
+          $ref: "#/components/schemas/StationsByDirection"
+        destinations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Destination"
+        districts:
+          type: array
+          items:
+            $ref: "#/components/schemas/District"
+        news_tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsTag"
+        highlights:
+          type: array
+          items:
+            $ref: "#/components/schemas/Highlight"
+    StationsByDirection:
+      type: object
+      required:
+        - westbound
+        - eastbound
+      properties:
+        westbound:
+          type: array
+          description: 西行車站，從筲箕灣至堅尼地城（66 個車站）。
+          items:
+            $ref: "#/components/schemas/Station"
+        eastbound:
+          type: array
+          description: 東行車站，從堅尼地城至筲箕灣（64 個車站）。
+          items:
+            $ref: "#/components/schemas/Station"
+    Station:
+      type: object
+      required:
+        - id
+        - loc_code
+        - type
+        - direction
+        - english_name
+        - t_chinese_name
+        - s_chinese_name
+        - latitude
+        - longitude
+      properties:
+        id:
+          type: integer
+          example: 117
+        loc_code:
+          type: string
+          description: 在到站預估端點路徑中使用的車站代碼。
+          example: SKT
+        type:
+          type: string
+          description: 車站類型。
+          example: TERMINUS
+          enum:
+            - TERMINUS
+            - STOP
+        direction:
+          type: string
+          description: Direction of travel for the station platform.
+          example: Westbound
+        english_name:
+          type: string
+          example: Shau Kei Wan Terminus
+        t_chinese_name:
+          type: string
+          description: Station name in Traditional Chinese.
+          example: 筲箕灣總站
+        s_chinese_name:
+          type: string
+          description: Station name in Simplified Chinese.
+          example: 筲箕湾总站
+        latitude:
+          type: string
+          description: Latitude in decimal degrees format.
+          example: "22.27788880"
+        longitude:
+          type: string
+          description: Longitude in decimal degrees format.
+          example: "114.23017030"
+        district_id:
+          type: integer
+          nullable: true
+        english_alternative_name:
+          type: string
+          nullable: true
+          example: Western District Swimming Shed
+        t_chinese_alternative_name:
+          type: string
+          nullable: true
+        s_chinese_alternative_name:
+          type: string
+          nullable: true
+        location_polygon:
+          type: array
+          description: Polygon vertex array `[longitude, latitude]` for nearest station
+            calculation.
+          nullable: true
+          items:
+            type: array
+            items:
+              type: number
+        should_show_in_picker:
+          type: boolean
+          description: Controls display in the mobile station selector.
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+        deleted_at:
+          $ref: "#/components/schemas/NullableTimestamp"
+    Destination:
+      type: object
+      description: Terminus destination dictionary matching `destination_code` in ETA
+        responses.
+      required:
+        - id
+        - destination
+        - english_name
+        - t_chinese_name
+        - s_chinese_name
+      properties:
+        id:
+          type: integer
+        destination:
+          type: string
+          description: Unique code for the destination terminus.
+          example: CBT
+        english_name:
+          type: string
+          example: Causeway Bay
+        t_chinese_name:
+          type: string
+          example: 銅鑼灣
+        s_chinese_name:
+          type: string
+          example: 铜锣湾
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+        deleted_at:
+          $ref: "#/components/schemas/NullableTimestamp"
+    District:
+      type: object
+      required:
+        - id
+        - english_name
+        - t_chinese_name
+        - s_chinese_name
+        - order
+      properties:
+        id:
+          type: integer
+        english_name:
+          type: string
+          example: Kennedy Town
+        t_chinese_name:
+          type: string
+          example: 堅尼地城
+        s_chinese_name:
+          type: string
+          example: 坚尼地城
+        order:
+          type: integer
+          description: Sort index for display order.
+        location_polygon:
+          type: array
+          nullable: true
+          description: Boundary polygon vertex array `[longitude, latitude]`.
+          items:
+            type: array
+            items:
+              type: number
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+    NewsTag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: Announcement
+        slug:
+          type: string
+          example: Announcement
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+        deleted_at:
+          $ref: "#/components/schemas/NullableTimestamp"
+    Highlight:
+      type: object
+      description: 首頁輪播橫幅項目。
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        image_url:
+          type: string
+          format: uri
+        link:
+          type: string
+          format: uri
+        order_index:
+          type: integer
+        is_active:
+          type: boolean
+    EtaData:
+      type: object
+      required:
+        - current_station
+        - direction
+        - etas
+      properties:
+        current_station:
+          type: string
+          description: 來自請求路徑的車站代碼。
+          example: 76W
+        direction:
+          type: string
+          enum:
+            - westbound
+            - eastbound
+        etas:
+          type: array
+          description: 按時間先後排序的即將到站列表。
+          items:
+            $ref: "#/components/schemas/EtaEntry"
+    EtaEntry:
+      type: object
+      required:
+        - destination_code
+        - destination
+        - arriving_in
+        - eta_type
+        - route_stations
+      properties:
+        destination_code:
+          type: string
+          description: 目的地總站代碼。
+          example: KTT
+        destination:
+          type: string
+          description: 英文目的地名稱。
+          example: Kennedy Town
+        arriving_in:
+          description: "`SCHEDULED` 電車為以分鐘為單位的整數，`ACTUAL` 電車為字串。"
+          oneOf:
+            - type: integer
+              example: 6
+            - type: string
+              example: ARRIVED
+        eta_type:
+          type: string
+          description: |
+            - `ACTUAL`：實時 GPS 追蹤（包含電車編號與到達時間）。
+            - `SCHEDULED`：時刻表計算（在 GPS 數據不可用時使用）。
+          enum:
+            - ACTUAL
+            - SCHEDULED
+        estimated_arrival_time:
+          type: string
+          nullable: true
+          description: 香港本地時間的預計到達時間（`YYYY-MM-DD HH:MM:SS`）。
+          pattern: ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$
+          example: 2026-10-05 17:05:40
+        estimated_dep_time:
+          type: string
+          nullable: true
+          description: 香港本地時間的預計發車時間（`YYYY-MM-DD HH:MM:SS`）。
+          pattern: ^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$
+          example: 2026-10-05 17:22:31
+        tram_no:
+          type: integer
+          nullable: true
+          description: 電車車隊編號。
+          example: 921
+        route_stations:
+          type: array
+          description: 該路線上有序的車站代碼列表。
+          items:
+            type: string
+          example:
+            - HVT
+            - 01E
+            - 03E
+        debug:
+          type: object
+          description: 來自服務器的診斷路由元數據。
+          properties:
+            route_code:
+              type: string
+              description: Internal route identifier, for example `R5_HVT_to_KTT`.
+              example: R5_HVT_to_KTT
+    NewsPage:
+      type: object
+      description: 來自 Laravel 框架的標準分頁對象。
+      required:
+        - current_page
+        - data
+        - per_page
+        - total
+      properties:
+        current_page:
+          type: integer
+          example: 1
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsItem"
+        first_page_url:
+          type: string
+          nullable: true
+        last_page_url:
+          type: string
+          nullable: true
+        next_page_url:
+          type: string
+          nullable: true
+        prev_page_url:
+          type: string
+          nullable: true
+        from:
+          type: integer
+          nullable: true
+        to:
+          type: integer
+          nullable: true
+        last_page:
+          type: integer
+        path:
+          type: string
+          format: uri
+        per_page:
+          type: integer
+          example: 5
+        total:
+          type: integer
+        links:
+          type: array
+          description: 分頁導航鏈接。
+          items:
+            type: object
+            properties:
+              url:
+                type: string
+                nullable: true
+              label:
+                type: string
+              active:
+                type: boolean
+    NewsItem:
+      type: object
+      required:
+        - id
+        - title
+        - published_at
+      properties:
+        id:
+          type: integer
+          example: 34
+        title:
+          type: string
+        published_at:
+          $ref: "#/components/schemas/Timestamp"
+        hero_image_url:
+          type: string
+          format: uri
+        share_url:
+          type: string
+        meta_tag:
+          type: string
+        meta_description:
+          type: string
+        content:
+          type: string
+          description: HTML 格式的文章文本。
+        content_md:
+          type: string
+          description: Markdown 格式的文章文本。
+        tags:
+          type: array
+          description: 標籤 ID 列表。
+          items:
+            type: integer
+        stations:
+          type: string
+          nullable: true
+          description: 關聯的車站代碼。
+        districts:
+          type: array
+          items:
+            type: integer
+        is_active:
+          type: boolean
+        is_pinned:
+          type: boolean
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+        deleted_at:
+          $ref: "#/components/schemas/NullableTimestamp"
+    NoticeListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+    Notice:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - critical_level
+      properties:
+        id:
+          type: integer
+          example: 116
+        title:
+          type: string
+          example: Service Update
+        content:
+          type: string
+        critical_level:
+          type: string
+          description: 通告的嚴重程度。
+          enum:
+            - low
+            - medium
+            - high
+        start_date:
+          $ref: "#/components/schemas/NullableTimestamp"
+        end_date:
+          $ref: "#/components/schemas/NullableTimestamp"
+        is_active:
+          type: boolean
+        is_show_in_home:
+          type: boolean
+        is_show_in_eta:
+          type: boolean
+          description: 控制是否在到站螢幕上顯示。
+        station_ids:
+          type: array
+          description: 關聯車站 ID 列表。
+          items:
+            type: integer
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+        deleted_at:
+          $ref: "#/components/schemas/NullableTimestamp"
+    TourData:
+      type: object
+      required:
+        - tour_highlights
+        - tour_events
+        - previous_highlights
+      properties:
+        tour_highlights:
+          type: array
+          items:
+            $ref: "#/components/schemas/TourHighlight"
+        tour_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TourEvent"
+        previous_highlights:
+          type: array
+          description: 往期行程活動列表。
+          items:
+            $ref: "#/components/schemas/TourEvent"
+    TourHighlight:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+          example: TramOramic Tour
+        banner_photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        description:
+          type: string
+        url:
+          type: string
+          format: uri
+          description: 門票訂購 URL。
+        is_active:
+          type: boolean
+        tour_event:
+          $ref: "#/components/schemas/TourEvent"
+    TourEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        title:
+          type: string
+          example: TramOramic Tour
+        hero_images:
+          type: array
+          items:
+            type: string
+            format: uri
+        abstract:
+          type: string
+        booking_text:
+          type: string
+        duration_text:
+          type: string
+          example: 1 hour
+        price_text:
+          type: string
+        is_active:
+          type: boolean
+    AppConfig:
+      type: object
+      required:
+        - ROUTE_COLORS
+      properties:
+        ROUTE_COLORS:
+          type: object
+          description: 將目的地代碼映射為十六進制顏色字串。
+          additionalProperties:
+            type: string
+            pattern: ^#[0-9A-Fa-f]{6}$
+          example:
+            SKT: "#1504CA"
+            KTT: "#22533E"
+            HVT: "#22533E"
+    ErrorResponse:
+      type: object
+      description: 帶有 `success=false` 和錯誤訊息的應用程式錯誤響應。
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          enum:
+            - false
+        message:
+          type: string
+    LaravelRouteError:
+      type: object
+      description: 當端點不存在時的路由錯誤響應。
+      required:
+        - message
+      properties:
+        message:
+          type: string
+    Timestamp:
+      type: string
+      format: date-time
+      description: 帶有微秒的 RFC3339 格式日期與時間字串。
+      example: 2025-06-13T23:50:16.000000Z
+    NullableTimestamp:
+      type: string
+      format: date-time
+      nullable: true
+      example: null

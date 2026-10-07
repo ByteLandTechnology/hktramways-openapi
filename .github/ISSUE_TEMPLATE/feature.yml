@@ -1,0 +1,23 @@
+name: Feature Request
+description: Suggest a new endpoint, schema improvement, or tool change
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting improvements for this specification and tooling.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the new endpoint, schema field, or tool feature.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source or Observation
+      description: Describe the screen in the official mobile app or provide captured traffic details.
+    validations:
+      required: false

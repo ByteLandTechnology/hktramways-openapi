@@ -1,0 +1,48 @@
+MIT License
+
+Copyright (c) 2026 ByteLand Technology Limited
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+### Legal Disclaimer, Trademark Notice, and Terms of Use
+
+1. **Non-Affiliation**:
+   This project is an independent, community-driven project created solely for interoperability
+   research and educational purposes. It is NOT affiliated with, sponsored by, authorized by,
+   or endorsed by Hong Kong Tramways, Limited (香港電車有限公司) or any of its subsidiaries.
+
+2. **Trademark Notice**:
+   "香港電車", "Hong Kong Tramways", "Ding Ding", "叮叮", "TramOramic", and related logos,
+   brand marks, and trade dress are trademarks or registered trademarks of Hong Kong Tramways, Limited.
+   All trademarks, service marks, and trade names are the property of their respective owners.
+   References to these marks in this project are used solely under nominative fair use to identify
+   the system and describe technical compatibility.
+
+3. **No Hosting of Upstream Services**:
+   The authors and contributors do not host, operate, manage, or control the upstream servers
+   (`api.hktramways.com`). This project provides only interface specifications and client code.
+   The authors are not responsible for any misuse, rate limit violations, service degradation,
+   or legal consequences arising from the use of this specification or client code.
+
+4. **Third-Party Terms and Fair Use**:
+   Users of this specification and client code are solely responsible for compliance with all
+   applicable laws, regulations, and third-party terms of service. Users must respect upstream
+   server capacities and avoid high-frequency automated requests, denial-of-service, or abusive use.

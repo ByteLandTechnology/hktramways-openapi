@@ -1,0 +1,40 @@
+name: Schema Discrepancy
+description: Report differences between openapi.yaml and live server responses
+title: "[Discrepancy]: "
+labels: ["bug", "schema-drift"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. Please supply actual response data from the production API.
+  - type: input
+    id: endpoint
+    attributes:
+      label: API Endpoint
+      description: Enter the endpoint, for example GET /tram-eta/76W/westbound or GET /home.
+      placeholder: GET /tram-eta/76W/westbound
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Schema
+      description: Describe the expected behavior or current schema in openapi.yaml.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Server Response
+      description: Paste the actual HTTP status, response headers, and response JSON. Do not include private tokens.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Enter the curl command or steps to reproduce the response.
+      placeholder: curl -H "Accept: application/json" "https://api.hktramways.com/api/v1/..."
+    validations:
+      required: true

@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <title>HK Tramways API (Unofficial)</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+      import { createApiReference } from 'https://cdn.jsdelivr.net/npm/@scalar/api-reference/esm.js'
+      createApiReference('#app', {
+        url: './openapi.yaml',
+        proxyUrl: 'https://proxy.scalar.com',
+      })
+    </script>
+  </body>
+</html>
