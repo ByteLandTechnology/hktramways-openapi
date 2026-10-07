@@ -1,6 +1,6 @@
 {
   "name": "hktramways-openapi",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Unofficial, independent OpenAPI 3.0 specification, bilingual interactive documentation, and TypeScript SDK for the Hong Kong Tramways mobile backend API",
   "license": "MIT",
   "author": "ByteLand Technology Limited",
